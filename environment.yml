@@ -1,0 +1,19 @@
+name: voila
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - ipywidgets
+  - widgetsnbextension
+  - ipykernel
+  - pandas
+  - pip
+  - matplotlib
+  - scipy
+  - vega_datasets
+  - ipyvolume
+  - pillow
+
+  - pip:
+    - voila
+    - voila-topbar
