@@ -13,6 +13,8 @@ dependencies:
   - vega_datasets
   - ipyvolume
   - pillow
+  - python-dotenv
+  - pyocclient
 
   - pip:
     - voila
