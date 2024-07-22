@@ -7,5 +7,14 @@
           "Content-Security-Policy": "frame-ancestors self *"
         }
       }
+    },
+    "VoilaConfiguration": {
+      "extension_config": {
+        "voila_topbar": {
+          "kernelActivity": false,
+          "themeToggle": false,
+          "title": "EvalXAI Project - XAI for Decision Making Validation Study",
+        }
+      }
     }
   }
