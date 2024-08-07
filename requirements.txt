@@ -1,5 +1,0 @@
-pillow
-pandas
-widgetsnbextension
-ipywidgets
-voila
