@@ -1,8 +1,8 @@
-name: evalxai_studies_new
+name: voila
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.12
   - ipywidgets
   - widgetsnbextension
   - ipykernel
@@ -10,14 +10,11 @@ dependencies:
   - pip
   - matplotlib
   - scipy
+  - vega_datasets
   - ipyvolume
   - pillow
   - python-dotenv
   - pyocclient
-
-  - tensorflow==2.15
-  - scikit-image
-  - seaborn
 
   - pip:
     - voila

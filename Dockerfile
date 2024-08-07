@@ -12,7 +12,7 @@ ENV HOME=/home/user \
 WORKDIR $HOME/app
 COPY --chown=user . .
 
-RUN mamba env create --prefix $HOME/env  -f ./environment.yml
+RUN mamba env create --prefix $HOME/env  -f ./apps/environment.yml
 
 EXPOSE 7860
 WORKDIR $HOME/app
