@@ -7,7 +7,7 @@ import pandas as pd
 
 import owncloud
 
-random.seed(0)
+# random.seed(0)
 
 class Example():
   
@@ -31,7 +31,7 @@ def init(oc_path, tmp_folder):
     image_paths.sort()
     random.shuffle(image_paths)
 
-    assert len(image_paths) == 20, f'Images Not loaded from {image_folder}'
+    assert len(image_paths) == 36, f'Images Not loaded from {image_folder} - should be 30 images, but there are {len(image_paths)}'
 
     return image_paths
 
