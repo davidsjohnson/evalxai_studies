@@ -13,12 +13,14 @@ class Example():
   
   def __init__(self, 
                id: str,
+               disp_id: str,
                image_path: Path,
                true: int,
                pred: int
               ):
     
     self.id: str = id
+    self.disp_id: str = disp_id 
     self.image_path: Path = image_path
     self.true: int = true
     self.pred: int = pred
@@ -31,9 +33,12 @@ def init(oc_path, tmp_folder):
     image_paths.sort()
     random.shuffle(image_paths)
 
-    assert len(image_paths) == 36, f'Images Not loaded from {image_folder} - should be 30 images, but there are {len(image_paths)}'
+    assert len(image_paths) == 42, f'Images Not loaded from {image_folder} - should be 42 images, but there are {len(image_paths)}'
 
     return image_paths
+
+
+disp_ids = []
 
 def setup_examples(image_paths):
   examples = []
@@ -41,10 +46,17 @@ def setup_examples(image_paths):
 
     # get image data
     id, true, pred, _ = path.stem.split( '_')
+    
+    disp_id = random.randint(10000, 99999)
+    while disp_id in disp_ids:
+      disp_id = random.randint(10000, 99999)
+    disp_ids.append(disp_id)
+       
+    
     true = int(true.split('=')[-1])
     pred = int(pred.split('=')[-1])
 
-    examples.append(Example(id, path, true, pred))
+    examples.append(Example(id, disp_id, path, true, pred))
 
   return examples
 
