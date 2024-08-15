@@ -25,15 +25,15 @@ class Example():
     self.true: int = true
     self.pred: int = pred
 
-def init(oc_path, tmp_folder):
+def init(oc_path, tmp_folder, num_samples, training=False):
     # get and process file
-    image_folder = download_examples(oc_path, tmp_folder)
+    image_folder = download_examples(oc_path, tmp_folder, training)
     # ensure order before shuffle for replicability
     image_paths = list(image_folder.rglob('*.png'))
     image_paths.sort()
     random.shuffle(image_paths)
 
-    assert len(image_paths) == 42, f'Images Not loaded from {image_folder} - should be 42 images, but there are {len(image_paths)}'
+    assert len(image_paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
 
     return image_paths
 
@@ -70,7 +70,7 @@ def register_example(results, example, init_select):
 
   return results
 
-def save_results(results, id, oc_path):
+def save_results(results, id, oc_path, training=False):
 
     results_df = pd.DataFrame.from_dict(results, orient='index').reset_index().rename(columns={'index': 'id'})
 
@@ -79,7 +79,8 @@ def save_results(results, id, oc_path):
     oc = owncloud.Client('https://uni-bielefeld.sciebo.de')
     oc.login(os.getenv('OC_USER'), os.getenv('OC_SECRET'))
 
-    oc.put_file(str(oc_path / f'results/results_{id}.csv'), 
+    outfile = f'results/results_{id}.csv' if not training else f'results_training/results_training_{id}.csv'
+    oc.put_file(str(oc_path / outfile), 
            f'results_{id}.csv')
 
     oc.logout()
@@ -100,15 +101,17 @@ def results_exist(id, oc_path):
         oc.logout()
 
 
-def download_examples(oc_path, tmp_folder):
+def download_examples(oc_path, tmp_folder, training=False):
 
     oc = owncloud.Client('https://uni-bielefeld.sciebo.de')
     oc.login(os.getenv('OC_USER'), os.getenv('OC_SECRET'))
 
-    oc.get_file(str(oc_path / 'xai_samples.zip'), tmp_folder / 'xai_samples.zip')
+    zipfile = 'xai_samples.zip' if not training else 'training_samples.zip'
+
+    oc.get_file(str(oc_path / zipfile), tmp_folder / zipfile)
 
     oc.logout()
 
-    shutil.unpack_archive(tmp_folder /'xai_samples.zip', tmp_folder, format='zip')
+    shutil.unpack_archive(tmp_folder / zipfile, tmp_folder, format='zip')
 
-    return tmp_folder / 'xai_samples'
+    return tmp_folder / Path(zipfile).stem
