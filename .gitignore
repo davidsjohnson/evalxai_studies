@@ -1,4 +1,4 @@
-results*
+results*.csv
 .env
 apps/temp/
 data/
