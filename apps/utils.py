@@ -2,6 +2,7 @@ import os
 import random
 from pathlib import Path
 import shutil
+import re
 
 import pandas as pd
 
@@ -93,12 +94,17 @@ def results_exist(id, oc_path):
     oc.login(os.getenv('OC_USER'), os.getenv('OC_SECRET'))
 
     try:
-        oc.get_file(str(oc_path / f'results_{id}.csv'), f'results_{id}.csv')
+        oc.get_file(str(oc_path / f'results/results_{id}.csv'), f'results_{id}.csv')
         return True
     except owncloud.HTTPResponseError as e:
         return False
     finally:
         oc.logout()
+
+# update before final study
+def id_valid(id_str, id_len=5):
+  pattern = fr'^[a-zA-Z0-9]{{{id_len}}}$'
+  return bool(re.match(pattern, id_str))
 
 
 def download_examples(oc_path, tmp_folder, training=False):
@@ -115,3 +121,18 @@ def download_examples(oc_path, tmp_folder, training=False):
     shutil.unpack_archive(tmp_folder / zipfile, tmp_folder, format='zip')
 
     return tmp_folder / Path(zipfile).stem
+
+
+### Testint
+
+def test_results_exist():
+  oc_basedir = Path('1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/')
+  res = results_exist(12345, oc_basedir)
+  
+  assert res == True, 'File Exists. Should return true'
+
+def test():
+  test_results_exist()
+
+if __name__ == "__main__":
+   test()
