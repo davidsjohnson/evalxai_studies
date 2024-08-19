@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 import shutil
 import re
+import hashlib
 
 import pandas as pd
 
@@ -101,6 +102,11 @@ def results_exist(id, oc_path):
     finally:
         oc.logout()
 
+
+def hash_prof_id(prof_id, len=12):
+  full_hash = hashlib.sha256(prof_id.encode()).hexdigest()
+  return full_hash[:len] # truncate
+
 # update before final study
 def id_valid(id_str, id_len=5):
   pattern = fr'^[a-zA-Z0-9]{{{id_len}}}$'
@@ -123,7 +129,7 @@ def download_examples(oc_path, tmp_folder, training=False):
     return tmp_folder / Path(zipfile).stem
 
 
-### Testint
+### Unit Tests
 
 def test_results_exist():
   oc_basedir = Path('1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/')
@@ -131,8 +137,17 @@ def test_results_exist():
   
   assert res == True, 'File Exists. Should return true'
 
+def test_hash_prof_id():
+  prof_id = '12345'
+  hash_len = 12
+  hash = hash_prof_id(prof_id, hash_len)
+
+  assert len(hash) == hash_len, 'Hash is not correct length.'
+  assert hash == '5994471abb01', 'Incorrect hash value for input'
+
 def test():
   test_results_exist()
+  test_hash_prof_id()
 
 if __name__ == "__main__":
    test()
