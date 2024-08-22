@@ -86,18 +86,17 @@ def register_example(results, example, init_select):
 
   return results
 
-def save_results(results, id, oc_path, stage):
+def save_results(results, id, oc_path, tmp_folder, stage):
 
     results_df = pd.DataFrame.from_dict(results, orient='index').reset_index().rename(columns={'index': 'id'})
 
-    results_df.to_csv(f'results_{id}.csv', index=False)
+    results_df.to_csv(tmp_folder / f'results_{stage}_{id}.csv', index=False)
 
     oc = owncloud.Client('https://uni-bielefeld.sciebo.de')
     oc.login(os.getenv('OC_USER'), os.getenv('OC_SECRET'))
 
     outfile = f'results/results_{stage}_{id}.csv'
-    oc.put_file(str(oc_path / outfile), 
-           f'results_{id}.csv')
+    oc.put_file(str(oc_path / outfile), tmp_folder / f'results_{stage}_{id}.csv')
 
     oc.logout()
 
