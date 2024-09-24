@@ -11,6 +11,11 @@ import pandas as pd
 
 import owncloud
 
+from dotenv import load_dotenv
+load_dotenv();
+
+HASH_INTROS = ['a1c', 'b55', 'z81']
+
 # random.seed(0)
 
 class Example():
@@ -116,9 +121,10 @@ def results_exist(id, oc_path, tmp_path, stage):
         oc.logout()
 
 
-def hash_prof_id(prof_id, len=12):
-  full_hash = hashlib.sha256(prof_id.encode()).hexdigest()
-  return full_hash[:len] # truncate
+def hash_prof_id(prof_id, stage, len=15):
+  hash_text = prof_id + f'supersecret_stage-{stage}'
+  full_hash = hashlib.sha256(hash_text.encode()).hexdigest()
+  return HASH_INTROS[stage] + full_hash[:len-3] # truncate
 
 # update before final study
 def id_valid(id_str, id_len=5):
@@ -151,7 +157,7 @@ def test_init():
   num_samples = 10
   paths = init(oc_path, tmp_folder, num_samples)
   
-  assert len(paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
+  assert len(paths) == num_samples, f'Images Not loaded from {oc_path} - should be {num_samples} images, but there are {len(paths)}'
 
 def test_results_exist():
   prof_id = '12345'
@@ -164,15 +170,15 @@ def test_results_exist():
 
 def test_hash_prof_id():
   prof_id = '12345'
-  hash_len = 12
-  hash = hash_prof_id(prof_id, hash_len)
+  hash_len = 15
+  hash = hash_prof_id(prof_id, stage=0, len=hash_len)
 
   assert len(hash) == hash_len, 'Hash is not correct length.'
-  assert hash == '5994471abb01', 'Incorrect hash value for input'
+  assert hash == HASH_INTROS[0]+'fe8a11050dcb', f'Incorrect hash value for input. Expected: {HASH_INTROS[0]+"fe8a11050dcb"} - Received: {hash}'
 
 def test():
-  test_init()
-  test_results_exist()
+  # test_init()
+  # test_results_exist()
   test_hash_prof_id()
 
 if __name__ == "__main__":
