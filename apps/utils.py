@@ -14,7 +14,7 @@ import owncloud
 from dotenv import load_dotenv
 load_dotenv();
 
-HASH_INTROS = ['a1c', 'b55', 'z81']
+HASH_INTROS = {'training': 'a1c', 'validation_nodiag':'b55', 'validation_noxai': 'z81'}
 
 # random.seed(0)
 
