@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv();
 
 HASH_INTROS = {'training': 'a1c', 'validation_nodiag':'b55', 'validation_noxai': 'z81'}
+SEEDS = [23, 45, 6] # randomly selected values to seed file/example ordering. one per each stage
 
 # random.seed(0)
 
@@ -34,13 +35,13 @@ class Example():
     self.true: int = true
     self.pred: int = pred
 
-def init(oc_path, tmp_folder, num_samples):
+def init(oc_path, tmp_folder, num_samples, seed):
     # get and process file
     image_folder = download_examples(oc_path, tmp_folder)
     # ensure order before shuffle for replicability
     image_paths = list(image_folder.rglob('*.png'))
     image_paths.sort()
-    random.shuffle(image_paths)
+    random.Random(seed).shuffle(image_paths)
 
     assert len(image_paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
 
@@ -159,6 +160,41 @@ def test_init():
   
   assert len(paths) == num_samples, f'Images Not loaded from {oc_path} - should be {num_samples} images, but there are {len(paths)}'
 
+def test_init_random():
+
+  stages = [(0, 'training'), (1, 'validation_nodiag'), (2, 'validation_noxai')]
+
+  for stage_num, stage in stages:
+    oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
+    tmp_folder = create_tmp_folder(stage)
+    num_samples = 10 if stage_num == 0 else 42
+    paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+
+    prev_paths = paths
+    for i in range(5):
+      paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+      for pp, p in zip(prev_paths, paths):
+          assert pp == p, f'Paths are not the same for stage {stage} - prev path {pp}, current path {p}'
+
+def save_rand_orders():
+  stages = [(0, 'training'), (1, 'validation_nodiag'), (2, 'validation_noxai')]
+
+  data = {'id': [],
+          'stage_name': []}
+  for stage_num, stage in stages:
+    oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
+    tmp_folder = create_tmp_folder(stage)
+    num_samples = 10 if stage_num == 0 else 42
+    paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+
+    data['id'].extend([p.stem.split('_')[0] for p in paths])
+    data['stage_name'].extend([stage_num] * len(paths))
+
+  df = pd.DataFrame(data)
+  df.to_csv('sample_orders.csv')
+     
+     
+
 def test_results_exist():
   prof_id = '12345'
   stage = 'training'
@@ -171,15 +207,18 @@ def test_results_exist():
 def test_hash_prof_id():
   prof_id = '12345'
   hash_len = 15
-  hash = hash_prof_id(prof_id, stage=0, len=hash_len)
+  stage = 'training'
+  hash = hash_prof_id(prof_id, stage=stage, len=hash_len)
 
   assert len(hash) == hash_len, 'Hash is not correct length.'
-  assert hash == HASH_INTROS[0]+'fe8a11050dcb', f'Incorrect hash value for input. Expected: {HASH_INTROS[0]+"fe8a11050dcb"} - Received: {hash}'
+  assert hash == HASH_INTROS[stage]+'9f48bfacff38', f'Incorrect hash value for input. Expected: {HASH_INTROS[stage]+"9f48bfacff38"} - Received: {hash}'
 
 def test():
   # test_init()
+  # test_init_random()
+  save_rand_orders()
   # test_results_exist()
-  test_hash_prof_id()
+  # test_hash_prof_id()
 
 if __name__ == "__main__":
    test()
