@@ -7,6 +7,8 @@ import shutil
 import re
 import hashlib
 
+import numpy as np
+
 import pandas as pd
 
 import owncloud
@@ -35,13 +37,13 @@ class Example():
     self.true: int = true
     self.pred: int = pred
 
-def init(oc_path, tmp_folder, num_samples, seed):
+
+def init(oc_path, tmp_folder, num_samples):
     # get and process file
     image_folder = download_examples(oc_path, tmp_folder)
     # ensure order before shuffle for replicability
     image_paths = list(image_folder.rglob('*.png'))
-    image_paths.sort()
-    random.Random(seed).shuffle(image_paths)
+    image_paths.sort() # sort images to remove random loading from rglob
 
     assert len(image_paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
 
@@ -62,8 +64,10 @@ def create_tmp_folder(stage):
 
 disp_ids = []
 
-def setup_examples(image_paths):
-  examples = []
+def setup_examples(image_paths, seed=0, start_size=8):
+
+  examples_cor = []
+  examples_inc = []
   for path in image_paths:
 
     # get image data
@@ -74,13 +78,21 @@ def setup_examples(image_paths):
       disp_id = random.randint(10000, 99999)
     disp_ids.append(disp_id)
        
-    
     true = int(true.split('=')[-1])
     pred = int(pred.split('=')[-1])
 
-    examples.append(Example(id, disp_id, path, true, pred))
+    if true == pred:
+      examples_cor.append(Example(id, disp_id, path, true, pred))
+    else:
+      examples_inc.append(Example(id, disp_id, path, true, pred))
 
-  return examples
+  examples_start = random.Random(seed).sample(examples_cor, start_size)
+  examples_cor = [x for x in examples_cor if x not in examples_start]
+
+  examples_rest = examples_cor + examples_inc
+  random.Random(seed).shuffle(examples_rest)
+    
+  return examples_start + examples_rest
 
 def register_example(results, example, init_select):
 
