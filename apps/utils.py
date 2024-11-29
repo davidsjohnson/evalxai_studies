@@ -18,6 +18,7 @@ load_dotenv();
 
 HASH_INTROS = {'training': 'a1c', 'validation_nodiag':'b55', 'validation_noxai': 'z81'}
 SEEDS = [23, 45, 6] # randomly selected values to seed file/example ordering. one per each stage
+START_TIME = int(datetime.now().timestamp() * 1000)
 
 # random.seed(0)
 
@@ -36,6 +37,44 @@ class Example():
     self.image_path: Path = image_path
     self.true: int = true
     self.pred: int = pred
+
+class Result():
+  def __init__(self,
+              example_id: str,
+              true: str,
+              pred: str
+              ):
+    self.example_id = example_id
+    self.true = true
+    self.pred = pred
+    
+    time = get_time()
+    self.select = None
+    self.created = time
+    self.last_accessed = time
+    self.accessed_updated = None
+    self.updated = None
+    
+  def set_select(self, select: str):
+    time = get_time()
+    self.select = select
+    self.updated = time
+    self.accessed_updated = self.last_accessed
+
+  def load(self):
+    time = get_time()
+    self.last_accessed = time
+
+    return self.select
+  
+  def __str__(self):
+    # Automatically generate string representation from __dict__
+    return f"{self.__class__.__name__}({', '.join(f'{k}={v!r}' for k, v in self.__dict__.items())})"
+  
+  def __repr__(self):
+    # Automatically generate string representation from __dict__
+    return f"{self.__class__.__name__}({', '.join(f'{k}={v!r}' for k, v in self.__dict__.items())})"
+
 
 
 def init(oc_path, tmp_folder, num_samples):
@@ -94,19 +133,21 @@ def setup_examples(image_paths, seed=0, start_size=8):
     
   return examples_start + examples_rest
 
-def register_example(results, example, init_select):
+def get_time():
+   return int(datetime.now().timestamp() * 1000) - START_TIME
 
-  results[example.id] = dict(
-    true = example.true,
-    pred = example.pred,
-    select = init_select
-  )
+def register_example(results, example, init_select):
+  
+  result = Result(example.id, example.true, example.pred)
+  results[example.id] = result
 
   return results
 
 def save_results(results, id, oc_path, tmp_folder, stage):
+    
+    results_dicts = [vars(result) for id, result in results.items()]
 
-    results_df = pd.DataFrame.from_dict(results, orient='index').reset_index().rename(columns={'index': 'id'})
+    results_df = pd.DataFrame(results_dicts).rename(columns={'example_id': 'id'})
 
     results_df.to_csv(tmp_folder / f'results_{stage}_{id}.csv', index=False)
 
@@ -180,11 +221,11 @@ def test_init_random():
     oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
     tmp_folder = create_tmp_folder(stage)
     num_samples = 10 if stage_num == 0 else 42
-    paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+    paths = init(oc_path, tmp_folder, num_samples)
 
     prev_paths = paths
     for i in range(5):
-      paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+      paths = init(oc_path, tmp_folder, num_samples)
       for pp, p in zip(prev_paths, paths):
           assert pp == p, f'Paths are not the same for stage {stage} - prev path {pp}, current path {p}'
 
@@ -197,15 +238,13 @@ def save_rand_orders():
     oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
     tmp_folder = create_tmp_folder(stage)
     num_samples = 10 if stage_num == 0 else 42
-    paths = init(oc_path, tmp_folder, num_samples, seed=SEEDS[stage_num])
+    paths = init(oc_path, tmp_folder, num_samples)
 
     data['id'].extend([p.stem.split('_')[0] for p in paths])
     data['stage_name'].extend([stage_num] * len(paths))
 
   df = pd.DataFrame(data)
   df.to_csv('sample_orders.csv')
-     
-     
 
 def test_results_exist():
   prof_id = '12345'
@@ -214,7 +253,7 @@ def test_results_exist():
   oc_basedir = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
   res = results_exist(prof_id, oc_basedir, tmp_folder, stage)
   
-  assert res != True, 'File Exists. Should return true'
+  assert res == True, 'File Exists. Should return true'
 
 def test_hash_prof_id():
   prof_id = '12345'
@@ -226,11 +265,11 @@ def test_hash_prof_id():
   assert hash == HASH_INTROS[stage]+'9f48bfacff38', f'Incorrect hash value for input. Expected: {HASH_INTROS[stage]+"9f48bfacff38"} - Received: {hash}'
 
 def test():
-  # test_init()
-  # test_init_random()
+  test_init()
+  test_init_random()
   save_rand_orders()
-  # test_results_exist()
-  # test_hash_prof_id()
+  test_results_exist()
+  test_hash_prof_id()
 
 if __name__ == "__main__":
    test()
