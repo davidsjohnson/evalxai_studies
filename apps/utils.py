@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import ast
 from datetime import datetime
 from pathlib import Path
 import shutil
@@ -29,7 +30,8 @@ class Example():
                disp_id: str,
                image_path: Path,
                true: int,
-               pred: int
+               pred: int,
+               ill_chars: list
               ):
     
     self.id: str = id
@@ -37,6 +39,7 @@ class Example():
     self.image_path: Path = image_path
     self.true: int = true
     self.pred: int = pred
+    self.ill_chars: list = ill_chars
 
 class Result():
   def __init__(self,
@@ -84,9 +87,12 @@ def init(oc_path, tmp_folder, num_samples):
     image_paths = list(image_folder.rglob('*.png'))
     image_paths.sort() # sort images to remove random loading from rglob
 
+    # load df (name is differernt for training data. should fix this is data creation script)
+    df = pd.read_csv(image_folder / 'xai_samples_df.csv' if num_samples == 39 else image_folder / 'training_samples_df.csv')
+
     assert len(image_paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
 
-    return image_paths
+    return image_paths, df
 
 # avoid time collisions
 def create_tmp_folder(stage):
@@ -103,27 +109,41 @@ def create_tmp_folder(stage):
 
 disp_ids = []
 
-def setup_examples(image_paths, seed=0, start_size=8):
+def setup_examples(image_paths, df_samples, seed=0, start_size=8):
 
   examples_cor = []
   examples_inc = []
   for path in image_paths:
 
     # get image data
-    id, true, pred, _ = path.stem.split( '_')
+    id, _, _, _ = path.stem.split( '_')
+    
+    true, pred, ill_chars = df_samples.loc[df_samples.id == id, ['ill', 'pred', 'ill_chars']].iloc[0]
+    true, pred = int(true), int(pred)
+    ill_chars = ast.literal_eval(ill_chars)
+
+    ill_chars_maps = dict(
+        med_bend = (2, 1), 
+        med_high_sphere_diff = (2, 2),
+        stretchy = (2, 3), 
+        high_bend = (1, 1), 
+        med_sphere_diff = (1, 2),
+        mutation_mainbones = (1, 3),
+        mutation_color = (2, 4)
+    )
+    ill_chars = set([ill_chars_maps[c][1] for c in ill_chars 
+                     if ill_chars_maps[c][0] == true or c == 'mutation_color'])
     
     disp_id = random.randint(10000, 99999)
     while disp_id in disp_ids:
       disp_id = random.randint(10000, 99999)
     disp_ids.append(disp_id)
        
-    true = int(true.split('=')[-1])
-    pred = int(pred.split('=')[-1])
 
     if true == pred:
-      examples_cor.append(Example(id, disp_id, path, true, pred))
+      examples_cor.append(Example(id, disp_id, path, true, pred, ill_chars))
     else:
-      examples_inc.append(Example(id, disp_id, path, true, pred))
+      examples_inc.append(Example(id, disp_id, path, true, pred, ill_chars))
 
   examples_start = random.Random(seed).sample(examples_cor, start_size)
   examples_cor = [x for x in examples_cor if x not in examples_start]
@@ -208,8 +228,8 @@ def test_init():
   stage = 'training'
   oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
   tmp_folder = create_tmp_folder(stage)
-  num_samples = 10
-  paths = init(oc_path, tmp_folder, num_samples)
+  num_samples = 15
+  paths, df = init(oc_path, tmp_folder, num_samples)
   
   assert len(paths) == num_samples, f'Images Not loaded from {oc_path} - should be {num_samples} images, but there are {len(paths)}'
 
@@ -221,11 +241,11 @@ def test_init_random():
     oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
     tmp_folder = create_tmp_folder(stage)
     num_samples = 10 if stage_num == 0 else 42
-    paths = init(oc_path, tmp_folder, num_samples)
+    paths, df = init(oc_path, tmp_folder, num_samples)
 
     prev_paths = paths
     for i in range(5):
-      paths = init(oc_path, tmp_folder, num_samples)
+      paths, df = init(oc_path, tmp_folder, num_samples)
       for pp, p in zip(prev_paths, paths):
           assert pp == p, f'Paths are not the same for stage {stage} - prev path {pp}, current path {p}'
 
@@ -237,14 +257,25 @@ def save_rand_orders():
   for stage_num, stage in stages:
     oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
     tmp_folder = create_tmp_folder(stage)
-    num_samples = 10 if stage_num == 0 else 42
-    paths = init(oc_path, tmp_folder, num_samples)
+    num_samples = 15 if stage_num == 0 else 39
+    paths, _ = init(oc_path, tmp_folder, num_samples)
 
     data['id'].extend([p.stem.split('_')[0] for p in paths])
     data['stage_name'].extend([stage_num] * len(paths))
 
   df = pd.DataFrame(data)
   df.to_csv('sample_orders.csv')
+
+
+def test_setup():
+    stage = 'training'
+    oc_path = Path(f'1. Research/1. HCXAI/1. Projects/evalxai_studies/example_validation_study/{stage}')
+    tmp_folder = create_tmp_folder(stage)
+    num_samples = 15
+    paths, df = init(oc_path, tmp_folder, num_samples)
+    examples = setup_examples(paths, df, seed=0, start_size=8)
+
+    assert len(examples) == 15, f'Different number of examples ({len(examples)}) than expected (15)'
 
 def test_results_exist():
   prof_id = '12345'
@@ -265,11 +296,12 @@ def test_hash_prof_id():
   assert hash == HASH_INTROS[stage]+'9f48bfacff38', f'Incorrect hash value for input. Expected: {HASH_INTROS[stage]+"9f48bfacff38"} - Received: {hash}'
 
 def test():
-  test_init()
-  test_init_random()
-  save_rand_orders()
-  test_results_exist()
-  test_hash_prof_id()
+  # test_init()
+  # test_init_random()
+  # save_rand_orders()
+  # test_results_exist()
+  # test_hash_prof_id()
+  test_setup()
 
 if __name__ == "__main__":
    test()
