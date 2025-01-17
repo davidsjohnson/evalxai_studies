@@ -88,7 +88,7 @@ def init(oc_path, tmp_folder, num_samples):
     image_paths.sort() # sort images to remove random loading from rglob
 
     # load df (name is differernt for training data. should fix this is data creation script)
-    df = pd.read_csv(image_folder / 'xai_samples_df.csv' if num_samples == 39 else image_folder / 'training_samples_df.csv')
+    df = pd.read_csv(image_folder / 'xai_samples_df.csv' if num_samples == 40 else image_folder / 'training_samples_df.csv')
 
     assert len(image_paths) == num_samples, f'Images Not loaded from {image_folder} - should be {num_samples} images, but there are {len(image_paths)}'
 
@@ -122,17 +122,15 @@ def setup_examples(image_paths, df_samples, seed=0, start_size=8):
     true, pred = int(true), int(pred)
     ill_chars = ast.literal_eval(ill_chars)
 
-    ill_chars_maps = dict(
-        med_bend = (2, 1), 
-        med_high_sphere_diff = (2, 2),
-        stretchy = (2, 3), 
+    ill_chars_maps = dict(  
         high_bend = (1, 1), 
-        med_sphere_diff = (1, 2),
-        mutation_mainbones = (1, 3),
-        mutation_color = (2, 4)
+        high_sphere_diff = (1, 2),
+        stretchy = (1, 3),
+        mutation_mainbones = (1, 4)
     )
     ill_chars = set([ill_chars_maps[c][1] for c in ill_chars 
-                     if ill_chars_maps[c][0] == true or c == 'mutation_color'])
+                     if c in ill_chars_maps and 
+                     ill_chars_maps[c][0] == 1])
     
     disp_id = random.randint(10000, 99999)
     while disp_id in disp_ids:
