@@ -3,3 +3,11 @@ results*.csv
 *temp/
 data/
 models/
+model/
+*.csv
+
+.vscode/
+__pycache__/
+*.pyc
+.DS_Store
+*.jupyter/
