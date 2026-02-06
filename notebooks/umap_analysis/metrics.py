@@ -91,9 +91,10 @@ def calc_RSR(y_true, y_model, y_user_base, y_user_advised):
 
     # IA (incorrect AI advice): the case where the AI is incorrect 
     ia_cases = (
+        (df['user_base'] == df['true']) &
         (df['model'] != df['true'])
     )
-
+    
     # RSR: proportion of CSR cases out of IA cases
     rsr = csr_cases.sum() / ia_cases.sum() if ia_cases.sum() > 0 else 0.0
 
