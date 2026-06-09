@@ -1,5 +1,6 @@
 import os
 import tarfile
+import zipfile
 import requests
 from pathlib import Path
 
@@ -24,12 +25,19 @@ def download_file(url, file_name, cache_dir="data", extract=True, force_download
       print(f"File already exists at: {file_path}")
 
     if extract:
-      with tarfile.open(file_path, "r:gz") as tar:
-          tar.extractall(path=cache_dir)
+      if file_path.suffixes[-2:] == ['.tar', '.gz']:
+        print("Extracting tar.gz file...")
+        with tarfile.open(file_path, "r:gz") as tar:
+            tar.extractall(path=cache_dir)
+      elif file_path.suffix == ".zip":
+        print("Extracting zip file...")
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(cache_dir)
+      else:
+        raise ValueError("Unsupported file format. Only .tar.gz and .zip files are supported.")
+      
       print(f"File extracted to: {cache_dir}")
-      file_path = Path(cache_dir) / archive_folder if archive_folder is not None else Path(cache_dir)
-    elif not extract and archive_folder is not None:
-       file_path = Path(cache_dir) / archive_folder
-       print(f"File already extracted to: {file_path}")
+      return Path(cache_dir) / archive_folder if archive_folder is not None else Path(cache_dir)
+
 
     return Path(file_path)
